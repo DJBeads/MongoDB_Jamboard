@@ -4,11 +4,10 @@
 
 $ docker compose up
 ```
-
 ## How to Clean Up
 
 To clean up properly the volumes containing the DB data have to be removed:
-```
+
 $ docker-compose down --volumes
 ```
 
