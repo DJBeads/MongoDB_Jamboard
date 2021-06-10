@@ -58,9 +58,9 @@ app.post('/newPost/:id', async (req, res) => {
             }
         })
 
-        board.save();
+        await board.save();
 
-        res.send('successful');
+        res.send(board);
     } catch (e){
         res
             .status(404)
@@ -71,14 +71,14 @@ app.post('/newPost/:id', async (req, res) => {
 
 app.post('/newEditor', async (req, res) => {
 
-    const editorData = req.body;
+    const newEditor = req.body;
 
     try {
-        const board = await Board.findOne({_id: editorData.idBoard});
+        const board = await Board.findOne({_id: newEditor.boardId});
         console.log(board)
         console.log(board.editor)
 
-        board.editor.push(editorData.idEditor);
+        board.editor.push(newEditor.boardId);
 
         await board.save();
 
@@ -95,14 +95,14 @@ app.post('/newEditor', async (req, res) => {
 
 app.post('/newBoard', async (req, res) => {
 
-    const boardData = req.body;
-    console.log(boardData);
+    const newBoard = req.body;
+    console.log(newBoard);
 
     try{
         const board = new Board({
             post: [],
-            owner:boardData.owner,
-            editor:[boardData.owner]
+            owner:newBoard.owner,
+            editor:[newBoard.owner]
         });
 
         await board.save();
@@ -117,12 +117,12 @@ app.post('/newBoard', async (req, res) => {
 
 app.put('/updatePost', async (req, res) => {
 
-    const postData = req.body;
+    const updatePost = req.body;
 
     try {
-        const board = await Board.findOne({_id: postData.idBoard});
+        const board = await Board.findOne({_id: updatePost.boardId});
 
-        let post = postData.postid;
+        let post = updatePost.postId;
 
         console.log(board);
 
@@ -130,13 +130,12 @@ app.put('/updatePost', async (req, res) => {
             if (post==board.post[i]._id){
 
                 board.post[i].overwrite({
-                    text: postData.text,
-                    author:postData.author,
+                    text: updatePost.text,
+                    author:updatePost.author,
                     position: {
-                        x:postData.x,
-                        y:postData.y
+                        x:updatePost.x,
+                        y:updatePost.y
                     }
-
 
                 });
 
@@ -149,7 +148,6 @@ app.put('/updatePost', async (req, res) => {
             }
         }
 
-
         res.send('successful');
     } catch (e){
         res
@@ -158,93 +156,52 @@ app.put('/updatePost', async (req, res) => {
     }
 })
 
-app.delete('/deleteEditor', async (req, res) => {
+app.delete('/deleteEditor/:boardId/:editorId', async (req, res) => {
+    try {
+        const deleteEditor = await Board.updateOne(
+            {_id: req.params.boardId},
+            {$pull: {editor: req.params.editorId}});
+        console.log(deleteEditor);
 
-    const editorData = req.body;
+        res.send('successful');
+    } catch(e) {
+        res
+            .status(404)
+            .send('Not Found.');
+    }
+});
+
+
+app.delete('/deletePost/:boardId/:postId', async (req, res) => {
 
     try {
-        const board = await Board.findOne({_id: editorData.idBoard});
-
-        console.log(board.editor);
-
-        let editor = editorData.idEditor;
-        console.log(editor);
-
-
-
-        for(let i=0;i < board.editor.length; i++){
-            if (editor==board.editor[i]){
-
-                board.editor.splice([i]);
-
-                board.save();
-
-                console.log(board.editor);
-            }else {
-                console.log(board.editor[i]);
-            }
-        }
-
+        const deletePost = await Board.updateOne(
+            {_id: req.params.boardId},
+            {$pull: {post: {_id: req.params.postId}}});
+        console.log(deletePost)
 
         res.send('successful');
-    } catch (e){
+    } catch(e) {
         res
             .status(404)
-            .send('Not found.');
+            .send('Not Found.');
     }
-})
-
-app.delete('/deletePost', async (req, res) => {
-
-    const postData = req.body;
-
-    try {
-        const board = await Board.findOne({_id: postData.idBoard});
-
-        let post = postData.idPost;
-
-        for(let i=0;i < board.post.length; i++){
-            if (post==board.post[i]._id){
-                board.post.splice(i,1);
-
-                await board.save();
-                break
-
-
-            }else {
-                console.log('not possible');
-            }
-        }
-
-
-        res.send('successful');
-    } catch (e){
-        res
-            .status(404)
-            .send('Not found.');
-    }
-})
+});
 
 
 app.delete('/deleteBoard/:id', async (req, res) => {
-
     const {id} = req.params;
-
     try {
-        Board.deleteOne({ _id: id }, function (err) {
-            if(err) console.log(err);
-            console.log("Deleted");
-        });
+        await Board.deleteOne({ _id: id })
 
-        res.send('successful');
+        res.send('deleted');
     } catch (e){
         res
             .status(404)
             .send('Not found.');
     }
-
-
 })
+
 
 mongoose.connect('mongodb://localhost:27017', {
     user: 'root',
